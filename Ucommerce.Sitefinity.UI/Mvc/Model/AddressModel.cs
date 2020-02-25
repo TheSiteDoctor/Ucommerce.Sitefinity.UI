@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
 using Telerik.Sitefinity.Abstractions;
-using UCommerce.Sitefinity.UI.Mvc.Model;
-using UCommerce.Sitefinity.UI.Mvc.ViewModels;
 using UCommerce.EntitiesV2;
-using UCommerce.Infrastructure;
+using UCommerce.Sitefinity.UI.Mvc.ViewModels;
 using UCommerce.Transactions;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Model
@@ -23,7 +21,8 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
         public AddressModel(Guid? nextStepId = null, Guid? previousStepId = null)
         {
-            _transactionLibraryInternal = UCommerce.Infrastructure.ObjectFactory.Instance.Resolve<TransactionLibraryInternal>();
+            _transactionLibraryInternal =
+                UCommerce.Infrastructure.ObjectFactory.Instance.Resolve<TransactionLibraryInternal>();
             _countries = Country.All();
             this.nextStepId = nextStepId ?? Guid.Empty;
             this.previousStepId = previousStepId ?? Guid.Empty;
@@ -32,9 +31,28 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
         public virtual AddressRenderingViewModel GetViewModel()
         {
             var viewModel = new AddressRenderingViewModel();
+            OrderAddress shippingInformation;
+            OrderAddress billingInformation;
+            PurchaseOrder purchaseOrder;
+            try
+            {
+                purchaseOrder = _transactionLibraryInternal.GetBasket().PurchaseOrder;
+                shippingInformation =
+                    _transactionLibraryInternal.GetBasket().PurchaseOrder
+                        .GetShippingAddress(UCommerce.Constants.DefaultShipmentAddressName) ?? new OrderAddress();
+                billingInformation = _transactionLibraryInternal.GetBasket().PurchaseOrder.BillingAddress ??
+                                     new OrderAddress();
+            }
+            catch (Exception ex)
+            {
+                Log.Write(ex, ConfigurationPolicy.ErrorLog);
+                return null;
+            }
 
-            var shippingInformation = _transactionLibraryInternal.GetBasket().PurchaseOrder.GetShippingAddress(UCommerce.Constants.DefaultShipmentAddressName) ?? new OrderAddress();
-            var billingInformation = _transactionLibraryInternal.GetBasket().PurchaseOrder.BillingAddress ?? new OrderAddress();
+            if (!purchaseOrder.OrderLines.Any())
+            {
+                return null;
+            }
 
             viewModel.BillingAddress.FirstName = billingInformation.FirstName;
             viewModel.BillingAddress.LastName = billingInformation.LastName;
@@ -48,7 +66,8 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             viewModel.BillingAddress.State = billingInformation.State;
             viewModel.BillingAddress.Attention = billingInformation.Attention;
             viewModel.BillingAddress.CompanyName = billingInformation.CompanyName;
-            viewModel.BillingAddress.CountryId = billingInformation.Country != null ? billingInformation.Country.CountryId : -1;
+            viewModel.BillingAddress.CountryId =
+                billingInformation.Country != null ? billingInformation.Country.CountryId : -1;
 
             viewModel.ShippingAddress.FirstName = shippingInformation.FirstName;
             viewModel.ShippingAddress.LastName = shippingInformation.LastName;
@@ -62,9 +81,11 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             viewModel.ShippingAddress.State = shippingInformation.State;
             viewModel.ShippingAddress.Attention = shippingInformation.Attention;
             viewModel.ShippingAddress.CompanyName = shippingInformation.CompanyName;
-            viewModel.ShippingAddress.CountryId = shippingInformation.Country != null ? shippingInformation.Country.CountryId : -1;
+            viewModel.ShippingAddress.CountryId =
+                shippingInformation.Country != null ? shippingInformation.Country.CountryId : -1;
 
-            viewModel.AvailableCountries = _countries.ToList().Select(x => new SelectListItem() { Text = x.Name, Value = x.CountryId.ToString() }).ToList();
+            viewModel.AvailableCountries = _countries.ToList()
+                .Select(x => new SelectListItem() {Text = x.Name, Value = x.CountryId.ToString()}).ToList();
 
             viewModel.NextStepUrl = GetNextStepUrl(nextStepId);
             viewModel.PreviousStepUrl = GetPreviousStepUrl(previousStepId);
@@ -89,7 +110,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
             _transactionLibraryInternal.ExecuteBasketPipeline();
 
-            result.Data = new { ShippingUrl = GetNextStepUrl(nextStepId) };
+            result.Data = new {ShippingUrl = GetNextStepUrl(nextStepId)};
             return result;
         }
 
@@ -122,43 +143,59 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
         private void EditBillingInformation(AddressSave billingAddress)
         {
             _transactionLibraryInternal.EditBillingInformation(
-               billingAddress.FirstName,
-               billingAddress.LastName,
-               billingAddress.EmailAddress,
-               billingAddress.PhoneNumber,
-               billingAddress.MobilePhoneNumber,
-               billingAddress.CompanyName,
-               billingAddress.Line1,
-               billingAddress.Line2,
-               billingAddress.PostalCode,
-               billingAddress.City,
-               billingAddress.State,
-               billingAddress.Attention,
-               billingAddress.CountryId);
+                billingAddress.FirstName,
+                billingAddress.LastName,
+                billingAddress.EmailAddress,
+                billingAddress.PhoneNumber,
+                billingAddress.MobilePhoneNumber,
+                billingAddress.CompanyName,
+                billingAddress.Line1,
+                billingAddress.Line2,
+                billingAddress.PostalCode,
+                billingAddress.City,
+                billingAddress.State,
+                billingAddress.Attention,
+                billingAddress.CountryId);
         }
 
         public virtual bool CanProcessRequest(Dictionary<string, object> parameters, out string message)
         {
-            if (Telerik.Sitefinity.Services.SystemManager.IsDesignMode)
-            {
-                message = "The widget is in Page Edit mode.";
-                return false;
-            }
+            object mode = null;
 
-            if (parameters.ContainsKey("addressRendering") && parameters.ContainsKey("modelState"))
+            if (parameters.TryGetValue("mode", out mode) && mode != null)
             {
-                var addressRendering = parameters["addressRendering"] as AddressSaveViewModel;
-                var modelState = parameters["modelState"] as ModelStateDictionary;
-
-                if (!addressRendering.IsShippingAddressDifferent)
+                if (mode.ToString() == "index")
                 {
-                    modelState.Remove("ShippingAddress.FirstName");
-                    modelState.Remove("ShippingAddress.LastName");
-                    modelState.Remove("ShippingAddress.EmailAddress");
-                    modelState.Remove("ShippingAddress.Line1");
-                    modelState.Remove("ShippingAddress.PostalCode");
-                    modelState.Remove("ShippingAddress.City");
+                    if (Telerik.Sitefinity.Services.SystemManager.IsDesignMode)
+                    {
+                        message = "The widget is in Page Edit mode.";
+                        return false;
+                    }
                 }
+
+                message = null;
+                return true;
+            }
+            else
+            {
+                if (parameters.ContainsKey("addressRendering") && parameters.ContainsKey("modelState"))
+                {
+                    var addressRendering = parameters["addressRendering"] as AddressSaveViewModel;
+                    var modelState = parameters["modelState"] as ModelStateDictionary;
+
+                    if (!addressRendering.IsShippingAddressDifferent)
+                    {
+                        modelState.Remove("ShippingAddress.FirstName");
+                        modelState.Remove("ShippingAddress.LastName");
+                        modelState.Remove("ShippingAddress.EmailAddress");
+                        modelState.Remove("ShippingAddress.Line1");
+                        modelState.Remove("ShippingAddress.PostalCode");
+                        modelState.Remove("ShippingAddress.City");
+                    }
+                }
+
+                message = null;
+                return true;
             }
 
             message = null;

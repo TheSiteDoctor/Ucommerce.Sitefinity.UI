@@ -4,13 +4,10 @@ using System.Linq;
 using System.Web;
 using Telerik.Sitefinity.Services;
 using Telerik.Sitefinity.Web;
-using Telerik.Sitefinity.Web.DataResolving;
-using UCommerce.Sitefinity.UI.Mvc.Model;
-using UCommerce.Sitefinity.UI.Mvc.ViewModels;
-using UCommerce;
 using UCommerce.Api;
 using UCommerce.EntitiesV2;
 using UCommerce.Infrastructure;
+using UCommerce.Sitefinity.UI.Mvc.ViewModels;
 using UCommerce.Transactions;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Model
@@ -81,6 +78,26 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                 return false;
             }
 
+            object submitModel = null;
+
+            if (parameters.TryGetValue("submitModel", out submitModel))
+            {
+                var updateModel = submitModel as CartUpdateBasket;
+
+                if (updateModel != null)
+                {
+                    foreach (var item in updateModel.RefreshBasket)
+                    {
+                        if (item.OrderLineQty < 1)
+                        {
+                            message = string.Format("Quantity of {0} must be greater than 0", item.OrderLineId);
+                            return false;
+
+                        }
+                    }
+                }
+            }
+
             message = null;
             return true;
         }
@@ -97,7 +114,6 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
                 _transactionLibraryInternal.UpdateLineItemByOrderLineId(updateOrderline.OrderLineId, newQuantity);
             }
-
             _transactionLibraryInternal.ExecuteBasketPipeline();
 
             var basket = _transactionLibraryInternal.GetBasket(false).PurchaseOrder;

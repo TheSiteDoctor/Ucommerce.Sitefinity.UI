@@ -2,10 +2,11 @@
 using System.Web.Mvc;
 using Telerik.Sitefinity.Mvc;
 using Telerik.Sitefinity.Personalization;
-using UCommerce.Infrastructure;
+using Ucommerce.Api;
+using Ucommerce.Infrastructure;
 using UCommerce.Sitefinity.UI.Api.Model;
 using UCommerce.Sitefinity.UI.Mvc.Model;
-using UCommerce.Transactions;
+using Ucommerce.Transactions;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Controllers
 {
@@ -17,11 +18,9 @@ namespace UCommerce.Sitefinity.UI.Mvc.Controllers
     {
         public Guid? CartPageId { get; set; }
         public string TemplateName { get; set; } = "Index";
-        private readonly TransactionLibraryInternal _transactionLibraryInternal;
 
         public MiniBasketController()
         {
-            _transactionLibraryInternal = ObjectFactory.Instance.Resolve<TransactionLibraryInternal>();
         }
 
         public ActionResult Index()
@@ -38,8 +37,9 @@ namespace UCommerce.Sitefinity.UI.Mvc.Controllers
 
             var miniBasketRenderingViewModel = miniBasketModel.CreateViewModel(Url.Action("Refresh"));
             var detailTemplateName = this.detailTemplateNamePrefix + this.TemplateName;
+            var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
 
-            if (!_transactionLibraryInternal.HasBasket())
+            if (!transactionLibrary.HasBasket())
             {
                 return View(detailTemplateName, miniBasketRenderingViewModel);
             }

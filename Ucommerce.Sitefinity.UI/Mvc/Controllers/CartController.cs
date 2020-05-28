@@ -2,11 +2,12 @@
 using System.Web.Mvc;
 using Telerik.Sitefinity.Mvc;
 using Telerik.Sitefinity.Personalization;
-using UCommerce.Infrastructure;
+using Ucommerce.Api;
+using Ucommerce.Infrastructure;
 using UCommerce.Sitefinity.UI.Api.Model;
 using UCommerce.Sitefinity.UI.Mvc.Model;
 using UCommerce.Sitefinity.UI.Mvc.ViewModels;
-using UCommerce.Transactions;
+using Ucommerce.Transactions;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Controllers
 {
@@ -21,11 +22,8 @@ namespace UCommerce.Sitefinity.UI.Mvc.Controllers
         public Guid? RedirectPageId { get; set; }
         public string TemplateName { get; set; } = "Index";
 
-        private readonly TransactionLibraryInternal _transactionLibraryInternal;
-
         public CartController()
         {
-            _transactionLibraryInternal = ObjectFactory.Instance.Resolve<TransactionLibraryInternal>();
         }
 
         public ActionResult Index()
@@ -70,6 +68,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Controllers
         [RelativeRoute("uc/checkout/cart/remove-orderline")]
         public ActionResult RemoveOrderline(int orderlineId)
         {
+            var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
             var model = ResolveModel();
             var parameters = new System.Collections.Generic.Dictionary<string, object>();
             string message;
@@ -79,8 +78,8 @@ namespace UCommerce.Sitefinity.UI.Mvc.Controllers
                 return this.PartialView("_Warning", message);
             }
 
-            _transactionLibraryInternal.UpdateLineItemByOrderLineId(orderlineId, 0);
-            _transactionLibraryInternal.ExecuteBasketPipeline();
+            transactionLibrary.UpdateLineItemByOrderLineId(orderlineId, 0);
+            transactionLibrary.ExecuteBasketPipeline();
             var vm = model.GetViewModel(Url.Action("UpdateBasket"), Url.Action("RemoveOrderline"));
 
             var miniBasketModel = ResolveMiniBasketModel();

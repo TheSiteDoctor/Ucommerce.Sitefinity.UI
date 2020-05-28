@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using UCommerce.EntitiesV2;
-using UCommerce.Infrastructure;
+using Ucommerce;
+using Ucommerce.Api;
+using Ucommerce.EntitiesV2;
+using Ucommerce.Infrastructure;
 using UCommerce.Sitefinity.UI.Mvc.ViewModels;
-using UCommerce.Transactions;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Model
 {
@@ -16,18 +17,20 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
     {
         private Guid nextStepId;
         private Guid previousStepId;
-        private readonly TransactionLibraryInternal _transactionLibraryInternal;
+        
 
         public BasketPreviewModel(Guid? nextStepId = null, Guid? previousStepId = null)
         {
-            _transactionLibraryInternal = ObjectFactory.Instance.Resolve<TransactionLibraryInternal>();
+            var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
             this.nextStepId = nextStepId ?? Guid.Empty;
             this.previousStepId = previousStepId ?? Guid.Empty;
         }
 
         public virtual BasketPreviewViewModel GetViewModel()
         {
-            var purchaseOrder = _transactionLibraryInternal.GetBasket(false).PurchaseOrder;
+            var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
+
+            var purchaseOrder = transactionLibrary.GetBasket(false);
             var basketPreviewViewModel = new BasketPreviewViewModel();
             MapAddresses(purchaseOrder, basketPreviewViewModel);
 
@@ -38,12 +41,12 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                     ProductName = orderLine.ProductName,
                     Sku = orderLine.Sku,
                     VariantSku = orderLine.VariantSku,
-                    Total = new Money(orderLine.Total.GetValueOrDefault(), orderLine.PurchaseOrder.BillingCurrency)
+                    Total = new Money(orderLine.Total.GetValueOrDefault(), orderLine.PurchaseOrder.BillingCurrency.ISOCode)
                         .ToString(),
-                    Tax = new Money(orderLine.VAT, purchaseOrder.BillingCurrency).ToString(),
-                    Price = new Money(orderLine.Price, purchaseOrder.BillingCurrency).ToString(),
+                    Tax = new Money(orderLine.VAT, purchaseOrder.BillingCurrency.ISOCode).ToString(),
+                    Price = new Money(orderLine.Price, purchaseOrder.BillingCurrency.ISOCode).ToString(),
                     PriceWithDiscount = new Money(orderLine.Price - orderLine.UnitDiscount.GetValueOrDefault(),
-                        purchaseOrder.BillingCurrency).ToString(),
+                        purchaseOrder.BillingCurrency.ISOCode).ToString(),
                     Quantity = orderLine.Quantity,
                     Discount = orderLine.Discount
                 };
@@ -52,18 +55,18 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             }
 
             basketPreviewViewModel.DiscountTotal =
-                new Money(purchaseOrder.DiscountTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.DiscountTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
             basketPreviewViewModel.DiscountAmount = purchaseOrder.DiscountTotal.GetValueOrDefault();
             basketPreviewViewModel.SubTotal =
-                new Money(purchaseOrder.SubTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.SubTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
             basketPreviewViewModel.OrderTotal =
-                new Money(purchaseOrder.OrderTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.OrderTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
             basketPreviewViewModel.TaxTotal =
-                new Money(purchaseOrder.TaxTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.TaxTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
             basketPreviewViewModel.ShippingTotal =
-                new Money(purchaseOrder.ShippingTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.ShippingTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
             basketPreviewViewModel.PaymentTotal =
-                new Money(purchaseOrder.PaymentTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency).ToString();
+                new Money(purchaseOrder.PaymentTotal.GetValueOrDefault(), purchaseOrder.BillingCurrency.ISOCode).ToString();
 
             var shipment = purchaseOrder.Shipments.FirstOrDefault();
             if (shipment != null)
@@ -154,7 +157,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             }
 
             OrderAddress ShipmentAddress =
-                purchaseOrder.GetShippingAddress(UCommerce.Constants.DefaultShipmentAddressName);
+                purchaseOrder.GetShippingAddress(Ucommerce.Constants.DefaultShipmentAddressName);
 
             if (!ShipmentAddress.FirstName.IsNullOrWhitespace())
             {
@@ -224,14 +227,16 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
         public virtual string GetPaymentUrl()
         {
-            var payment = _transactionLibraryInternal.GetBasket().PurchaseOrder.Payments.First();
+            var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
+
+            var payment = transactionLibrary.GetBasket().Payments.First();
             if (payment.PaymentMethod.PaymentMethodServiceName == null)
             {
                 return "/confirmation";
             }
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            string paymentUrl = _transactionLibraryInternal.GetPaymentPageUrl(payment);
+            string paymentUrl = transactionLibrary.GetPaymentPageUrl(payment);
             return paymentUrl;
         }
 
@@ -258,7 +263,9 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                 PurchaseOrder purchaseOrder;
                 try
                 {
-                    purchaseOrder = _transactionLibraryInternal.GetBasket(false).PurchaseOrder;
+                    var transactionLibrary = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ITransactionLibrary>();
+
+                    purchaseOrder = transactionLibrary.GetBasket(false);
                 }
                 catch
                 {
@@ -272,7 +279,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                     return false;
                 }
 
-                if (purchaseOrder.GetShippingAddress(UCommerce.Constants.DefaultShipmentAddressName) == null)
+                if (purchaseOrder.GetShippingAddress(Ucommerce.Constants.DefaultShipmentAddressName) == null)
                 {
                     message = "The Shipping Address must be specified.";
                     return false;

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using UCommerce.EntitiesV2;
-using UCommerce.Pipelines;
-using UCommerce.Runtime;
+using System.Linq;
+using Telerik.Sitefinity.Data.Linq.Dynamic;
+using Ucommerce.Api;
+using Ucommerce.EntitiesV2;
+using Ucommerce.Pipelines;
 using UCommerce.Sitefinity.UI.Mvc.Model.Contracts;
 using UCommerce.Sitefinity.UI.Mvc.ViewModels;
 
@@ -12,13 +14,14 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
     {
         private readonly IRepository<ProductReviewStatus> _productReviewStatusRepository;
         private readonly IOrderContext _orderContext;
-        private readonly IPipeline<EntitiesV2.ProductReview> _productReviewPipeline;
-
+        private readonly IPipeline<Ucommerce.EntitiesV2.ProductReview> _productReviewPipeline;
+        private ICatalogContext _catalogContext;
         public AddReviewModel()
         {
-            _productReviewStatusRepository = UCommerce.Infrastructure.ObjectFactory.Instance.Resolve<IRepository<ProductReviewStatus>>();
-            _orderContext = UCommerce.Infrastructure.ObjectFactory.Instance.Resolve<IOrderContext>();
-            _productReviewPipeline = UCommerce.Infrastructure.ObjectFactory.Instance.Resolve<IPipeline<EntitiesV2.ProductReview>>();
+            _productReviewStatusRepository = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<IRepository<ProductReviewStatus>>();
+            _orderContext = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<IOrderContext>();
+            _productReviewPipeline = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<IPipeline<Ucommerce.EntitiesV2.ProductReview>>();
+            _catalogContext = Ucommerce.Infrastructure.ObjectFactory.Instance.Resolve<ICatalogContext>();
         }
         public bool CanProcessRequest(Dictionary<string, object> parameters, out string message)
         {
@@ -38,11 +41,11 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
             if (viewModel.ProductId.HasValue)
             {
-                product = UCommerce.EntitiesV2.Product.Get(viewModel.ProductId.Value);
+                product = Ucommerce.EntitiesV2.Product.Get(viewModel.ProductId.Value);
             }
             else
             {
-                product = SiteContext.Current.CatalogContext.CurrentProduct;
+                product = Product.All().Single(x => x.Guid == _catalogContext.CurrentProduct.Guid);
             }
 
             var request = System.Web.HttpContext.Current.Request;
@@ -78,14 +81,14 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
             if (viewModel.CatalogGroupId.HasValue)
             {
-                catalogGroup = UCommerce.EntitiesV2.ProductCatalogGroup.Get(viewModel.CatalogGroupId.Value);
+                catalogGroup = Ucommerce.EntitiesV2.ProductCatalogGroup.Get(viewModel.CatalogGroupId.Value);
             }
             else
             {
-                catalogGroup = SiteContext.Current.CatalogContext.CurrentCatalogGroup;
+                catalogGroup = Ucommerce.EntitiesV2.ProductCatalogGroup.All().Single(x => x.Guid == _catalogContext.CurrentCatalogGroup.Guid);
             }
 
-            var review = new EntitiesV2.ProductReview();
+            var review = new Ucommerce.EntitiesV2.ProductReview();
             review.ProductCatalogGroup = catalogGroup;
             review.ProductReviewStatus = _productReviewStatusRepository.SingleOrDefault(s => s.Name == "New");
             review.CreatedOn = DateTime.Now;

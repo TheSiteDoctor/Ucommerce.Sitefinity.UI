@@ -101,21 +101,13 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
                     if (sortExpression == "PriceAsc")
                     {
-                        productsQuery = productsQuery.OrderBy(p =>
-                            CatalogLibrary.CalculatePrices(new List<Guid>
-                                        { p.Guid },
-                                    null)
-                                .Items.First()
-                                .ListPriceExclTax);
+                        var currencyCode = CatalogContext.CurrentPriceGroup.CurrencyISOCode;
+                        productsQuery = productsQuery.OrderBy(x => x.UnitPrices[currencyCode]);
                     }
                     else if (sortExpression == "PriceDesc")
                     {
-                        productsQuery = productsQuery.OrderByDescending(p =>
-                            CatalogLibrary.CalculatePrices(new List<Guid>
-                                        { p.Guid },
-                                    null)
-                                .Items.First()
-                                .ListPriceExclTax);
+                        var currencyCode = CatalogContext.CurrentPriceGroup.CurrencyISOCode;
+                        productsQuery = productsQuery.OrderByDescending(x => x.UnitPrices[currencyCode]);
                     }
                     else if (sortExpression == "NameAsc")
                     {
@@ -256,7 +248,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                 if (variants.Count() != 0)
                 {
                     foreach (var userDefinedField in variants.First()
-                        .GetUserDefinedFields())
+                                 .GetUserDefinedFields())
                     {
                         var typeViewModel = new VariantTypeViewModel
                         {
@@ -547,8 +539,9 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                     {
                         price = singleProductPrice.PriceInclTax;
                         discount = singleProductPrice.DiscountInclTax;
-                    } 
+                    }
                 }
+
                 var productViewModel = new ProductDTO
                 {
                     Sku = product.Sku,

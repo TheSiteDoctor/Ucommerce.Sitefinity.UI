@@ -57,7 +57,6 @@
 			@if (product.IsAddableToCart && product.IsSellableProduct)
 			{
 				<add-to-basket :product-sku="'@product.Sku'" :root-id="$el.id"></add-to-basket>
-				<span class="sfRegPrice">Rating: @product.Rating.ToString("0.0")</span>
 				<div>
 					<a class="text-info" href="@product.ProductUrl">@Html.Resource("WriteReview", "UcommerceResources")</a>
 				</div>

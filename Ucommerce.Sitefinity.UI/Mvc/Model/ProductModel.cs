@@ -541,20 +541,8 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
                         discount = singleProductPrice.DiscountInclTax;
                     } 
                 }
-
-                var productEntity = Ucommerce.EntitiesV2.Product.FirstOrDefault(x => x.Guid == product.Guid);
-                var ratings = productEntity?.ProductReviews?
-                    .Select(x => Math.Round(Math.Abs(x.Rating.GetValueOrDefault(0)) / 20.0))
-                    .Where(r => r > 0) 
-                    .ToList() ?? new List<double>();
-
-                var count = ratings.Count;
-                var ratingSum = ratings.Sum();
-                var averageRating = count > 0 ? ratingSum / count : 0.0;
-                
                 var productViewModel = new ProductDTO
                 {
-                    Rating = averageRating,
                     Sku = product.Sku,
                     VariantSku = product.VariantSku,
                     Price = new Money(price, CatalogContext.CurrentPriceGroup.CurrencyISOCode).ToString(),

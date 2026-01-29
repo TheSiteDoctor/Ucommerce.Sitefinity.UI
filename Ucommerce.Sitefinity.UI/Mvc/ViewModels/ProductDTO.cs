@@ -14,7 +14,6 @@
         public string ProductUrl { get; set; }
         public string Sku { get; set; }
         public string ThumbnailImageMediaUrl { get; set; }
-        public double Rating { get; set; }
         public string VariantSku { get; set; }
     }
 }

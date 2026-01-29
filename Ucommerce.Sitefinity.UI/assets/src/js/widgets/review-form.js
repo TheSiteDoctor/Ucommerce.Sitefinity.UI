@@ -12,15 +12,13 @@ function initReviewForm(rootElement) {
             rating: null,
             comments: '',
             userName: '',
-            userEmail: ''
+            userEmail: '',
+            star1: 'star',
+            star2: 'star',
+            star3: 'star',
+            star4: 'star',
+            star5: 'star'
         },
-        props: [
-            'star1',
-            'star2',
-            'star3',
-            'star4',
-            'star5',
-        ],
         methods: {
             setRating: function (rating) {
                 this.rating = rating;

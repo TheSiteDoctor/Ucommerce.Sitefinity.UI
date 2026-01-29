@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UCommerce.Sitefinity.UI.Mvc.ViewModels;
 
 namespace UCommerce.Sitefinity.UI.Mvc.Model.Contracts
@@ -9,6 +10,6 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model.Contracts
     public interface IReviewsModel
     {
         bool CanProcessRequest(Dictionary<string, object> parameters, out string message);
-        ProductReviewsRenderingViewModel GetReviews(int? productId);
+        ProductReviewsRenderingViewModel GetReviews(Guid? productId);
     }
 }

@@ -26,7 +26,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
             if (viewModel.ProductId.HasValue)
             {
-                product = Product.Get(viewModel.ProductId.Value);
+                product = Product.FirstOrDefault(p => p.Guid == viewModel.ProductId.Value);
             }
             else
             {
@@ -67,7 +67,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
 
             if (viewModel.CatalogGroupId.HasValue)
             {
-                catalogGroup = ProductCatalogGroup.Get(viewModel.CatalogGroupId.Value);
+                catalogGroup = ProductCatalogGroup.FirstOrDefault(pcg => pcg.Guid == viewModel.CatalogGroupId.Value);
             }
             else
             {

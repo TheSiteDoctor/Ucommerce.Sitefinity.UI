@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Web;
@@ -29,14 +30,14 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             return true;
         }
 
-        public virtual ProductReviewsRenderingViewModel GetReviews(int? productId)
+        public virtual ProductReviewsRenderingViewModel GetReviews(Guid? productId)
         {
             var clientIp = HttpContext.Current.Request.UserHostName;
             Product currentProduct = null;
 
-            if (productId >= 0)
+            if (productId.HasValue)
             {
-                currentProduct = Product.Get(productId.Value);
+                currentProduct = Product.FirstOrDefault(x => x.Guid == productId.Value);
             }
             else if (CatalogContext.CurrentProduct?.Guid != null)
             {
@@ -54,7 +55,7 @@ namespace UCommerce.Sitefinity.UI.Mvc.Model
             }
 
             reviewVm.Reviews = currentProduct.ProductReviews.Where(pr => pr.ProductReviewStatus.ProductReviewStatusId == (int)ProductReviewStatusCode.Approved
-                    && (pr.CultureCode == null || pr.CultureCode == string.Empty || pr.CultureCode == Thread.CurrentThread.CurrentUICulture.Name))
+                    && (string.IsNullOrEmpty(pr.CultureCode) || pr.CultureCode == Thread.CurrentThread.CurrentUICulture.Name))
                 .OrderByDescending(pr => pr.CreatedOn)
                 .Select(review => new ProductReview
                 {
